@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              animation: {
+                fadeIn: 'fadeIn 0.7s ease-in-out',
+                slideUp: 'slideUp 0.7s ease-in-out',
+                pulseFade: 'pulseFade 2s ease-in-out infinite'
+              },
+              keyframes: {
+                fadeIn: {
+                  '0%': { opacity: 0 },
+                  '100%': { opacity: 1 }
+                },
+                slideUp: {
+                  '0%': { transform: 'translateY(10px)', opacity: 0 },
+                  '100%': { transform: 'translateY(0)', opacity: 1 }
+                },
+                pulseFade: {
+                  '0%, 100%': { opacity: 0.8 },
+                  '50%': { opacity: 1 }
+                }
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 to-blue-200 min-h-screen p-6 font-sans">
+
+<div th:if="${errorMessage}" class="bg-red-200 text-red-900 font-medium p-4 rounded-lg mb-6 border border-red-300 shadow-lg max-w-xl mx-auto text-center animate-fadeIn">
+    <p class="text-lg mb-3" th:text="${errorMessage}">Insufficient balance</p>
+    <a href="/" class="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded transition">
+        ⬅ Back to Home
+    </a>
+</div>
+
+
+
+<div class="max-w-7xl mx-auto animate-fadeIn">
+    <div class="flex justify-between items-center mb-10">
+        <h1 class="text-4xl font-extrabold text-gray-800 animate-pulseFade">🏦 Account Dashboard</h1>
+        <button onclick="openModal('addAccountModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl shadow-lg transition transform hover:scale-105">
+            ➕ Add Account
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div th:each="account : ${accountList}" class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 animate-slideUp">
+
+            <!-- Header with ID at top-right -->
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                        👤 <span th:text="${account.holderName}">Holder</span>
+                    </h2>
+                    <p class="text-sm text-gray-600">
+                        Account No: <span th:text="${account.accountNumber}">123456</span>
+                    </p>
+                </div>
+                <span class="text-sm text-gray-500">#<span th:text="${account.accountId}">1</span></span>
+            </div>
+
+            <!-- Balance -->
+            <p class="text-lg text-gray-800 mb-4">
+                💰 Balance: ₹<span th:text="${account.balance}">0</span>
+            </p>
+
+            <!-- Buttons -->
+            <div class="flex flex-wrap gap-2">
+                <a th:href="@{|/${account.accountId}/transactions|}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded-md shadow">
+                    📄 Transactions
+                </a>
+                <button th:onclick="openModal('depositModal', [[${account.accountId}]])" class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-md shadow">
+                    💰 Deposit
+                </button>
+                <button th:onclick="openModal('withdrawModal', [[${account.accountId}]])" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md shadow">
+                    💸 Withdraw
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+<!-- Modal -->
+<div id="modalWrapper" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl p-8 w-full max-w-lg shadow-2xl animate-fadeIn relative">
+        <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-500 hover:text-red-500">✖</button>
+        <h2 id="modalTitle" class="text-2xl font-semibold text-gray-800 mb-4">Action</h2>
+        <form id="modalForm" method="post" class="space-y-4">
+            <input type="hidden" name="accountId" id="modalAccountId">
+            <div id="modalFields"></div>
+            <div class="flex justify-end space-x-3">
+                <button type="submit" id="modalSubmitBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Submit</button>
+                <button type="button" onclick="closeModal()" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModal(type, accountId = null) {
+      const modal = document.getElementById("modalWrapper");
+      const title = document.getElementById("modalTitle");
+      const fields = document.getElementById("modalFields");
+      const form = document.getElementById("modalForm");
+      const submitBtn = document.getElementById("modalSubmitBtn");
+
+      modal.classList.remove("hidden");
+      fields.innerHTML = "";
+
+      if (type === 'addAccountModal') {
+        title.innerText = "➕ Add New Account";
+        form.action = "/accounts/add";
+        fields.innerHTML = `
+          <div>
+            <label class="block font-medium text-gray-600">Holder Name</label>
+            <input name="holderName" class="w-full border p-2 rounded-md focus:ring-2 focus:ring-indigo-500" required />
+          </div>
+          <div>
+            <label class="block font-medium text-gray-600">Initial Balance</label>
+            <input name="initialBalance" type="number" step="0.01" class="w-full border p-2 rounded-md focus:ring-2 focus:ring-indigo-500" required />
+          </div>`;
+        submitBtn.textContent = "Add Account";
+      } else if (type === 'depositModal') {
+        title.innerText = "💰 Deposit Amount";
+        form.action = `/${accountId}/deposite`;
+        document.getElementById("modalAccountId").value = accountId;
+        fields.innerHTML = `
+          <div>
+            <label class="block font-medium text-gray-600">Amount</label>
+            <input name="amount" type="number" step="0.01" class="w-full border p-2 rounded-md focus:ring-2 focus:ring-green-500" required />
+          </div>`;
+        submitBtn.textContent = "Deposit";
+      } else if (type === 'withdrawModal') {
+        title.innerText = "💸 Withdraw Amount";
+        form.action = `/${accountId}/withdraw`;
+        document.getElementById("modalAccountId").value = accountId;
+        fields.innerHTML = `
+          <div>
+            <label class="block font-medium text-gray-600">Amount</label>
+            <input name="amount" type="number" step="0.01" class="w-full border p-2 rounded-md focus:ring-2 focus:ring-red-500" required />
+          </div>`;
+        submitBtn.textContent = "Withdraw";
+      }
+    }
+
+    function closeModal() {
+      document.getElementById("modalWrapper").classList.add("hidden");
+    }
+</script>
+</body>
+</html>
